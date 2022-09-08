@@ -1,3 +1,4 @@
 node_modules
 assets/*.jpg
 img_urls.json
+cluster.json
