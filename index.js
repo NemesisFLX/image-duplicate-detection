@@ -1,6 +1,7 @@
 import * as jpeg from "jpeg-js"
 import * as fs from "fs"
 import cluster from './cluster.json' assert {type: 'json'}
+import calculateROC from "./src/roc_calculation.js" 
 
 const similiarity = (center, data) => {
     const quadrants = [0, 0, 0, 0, 0, 0, 0, 0]
@@ -104,13 +105,28 @@ const sortedMatrix = similiarityMatrix
             return result
         }
 
-        if(leftImageClusterNumber === rightImageClusterNumber){
+        if (leftImageClusterNumber === rightImageClusterNumber) {
             result.truth = true
-        }else{
+        } else {
             result.truth = false
         }
         return result
     })
+    
+const roc = calculateROC(sortedMatrix)
 
-for (let i = 0; i < 20; i++)
-    console.log(sortedMatrix[i])
+//for (let i = 0; i < 20; i++)
+//    console.log(sortedMatrix[i])
+
+//console.table([[tp,fp],[fn,tn]])
+
+// Current false positive / true positive max should be 5% -> 185/472
+// -> To get better use x / y axis
+// -> Count in multiple deepness levels
+
+const header = "1 - Specifity, Sensitivity\n"
+const data = roc.map((a) => {
+    return `${a.x},${a.y}\n`
+})
+
+fs.writeFileSync("roc.csv", header + data.join(""))
