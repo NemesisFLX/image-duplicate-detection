@@ -57,16 +57,6 @@ for(let i = 0; i <= iterations; i++){
 
 
 
-
-/*
-const similiarityIdArray = raw_images.map(rawImage => {
-    let result = []
-    for (const quadrantCenter of quadrantCenterArray)
-        result = result.concat(similiarity(quadrantCenter, rawImage.data))
-    return result
-})
-*/
-
 const similiarityMatrix = Array(similiarityIdArray.length * similiarityIdArray.length).fill(null).map(() => {
     return {
         imageLeft: "",
