@@ -1,7 +1,8 @@
 import * as jpeg from "jpeg-js"
 import * as fs from "fs"
 import cluster from './cluster.json' assert {type: 'json'}
-import calculateROC from "./src/roc_calculation.js" 
+import calculateROC from "./src/roc_calculation.js"
+import { find } from "./src/similarity.ts"
 
 const similiarity = (center, data) => {
     const quadrants = [0, 0, 0, 0, 0, 0, 0, 0]
@@ -59,12 +60,56 @@ const quadrantCenterArray = (new Array(iterations))
     .fill(null)
     .map(() => [Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)])
 
+const pixelImages = raw_images.map(rawImage => {
+    let pixelArray = []
+    let currentPixel = [0, 0, 0]
+    for (let pixelColorIndex in rawImage.data) {
+        if (pixelColorIndex % 3 === 0) {
+            currentPixel = [0, 0, 0]
+        }
+        currentPixel[pixelColorIndex % 3] = rawImage.data[pixelColorIndex]
+        if (pixelColorIndex % 3 === 2) {
+            const pixelIndex = Math.floor(pixelColorIndex / 3)
+            pixelArray.push({
+                x: pixelIndex % rawImage.width,
+                y: Math.floor(pixelIndex / rawImage.width) % rawImage.height,
+                r: currentPixel[0],
+                g: currentPixel[1],
+                b: currentPixel[2]
+            })
+        }
+    }
+    return {
+        pixels: pixelArray,
+        height: rawImage.height,
+        width: rawImage.width
+    }
+})
+
+const divider = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()]
+const similiarityIdArray = []
+
+
+for (let pixelImage of pixelImages) {
+    const clusterDefinitons = [
+        { dimension: "r", maxValue: 255, dividers: [divider[0]] },
+        { dimension: "g", maxValue: 255, dividers: [divider[1]] },
+        { dimension: "b", maxValue: 255, dividers: [divider[2]] },
+        { dimension: "x", maxValue: pixelImage.width, dividers: [divider[3]] },
+        { dimension: "y", maxValue: pixelImage.height, dividers: [divider[4]] }
+    ]
+
+    similiarityIdArray.push(find(pixelImage.pixels, clusterDefinitons))
+}
+
+/*
 const similiarityIdArray = raw_images.map(rawImage => {
     let result = []
     for (const quadrantCenter of quadrantCenterArray)
         result = result.concat(similiarity(quadrantCenter, rawImage.data))
     return result
 })
+*/
 
 const similiarityMatrix = Array(similiarityIdArray.length * similiarityIdArray.length).fill(null).map(() => {
     return {
@@ -112,7 +157,7 @@ const sortedMatrix = similiarityMatrix
         }
         return result
     })
-    
+
 const roc = calculateROC(sortedMatrix)
 
 //for (let i = 0; i < 20; i++)
