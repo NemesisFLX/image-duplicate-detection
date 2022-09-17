@@ -4,61 +4,12 @@ import cluster from './cluster.json' assert {type: 'json'}
 import calculateROC from "./src/roc_calculation.js"
 import { find } from "./src/similarity.ts"
 
-const similiarity = (center, data) => {
-    const quadrants = [0, 0, 0, 0, 0, 0, 0, 0]
-    let currentPixel = [0, 0, 0]
-
-    for (let pixelColorIndex in data) {
-        if (pixelColorIndex % 3 === 0) {
-            currentPixel = [0, 0, 0]
-        }
-        currentPixel[pixelColorIndex % 3] = data[pixelColorIndex]
-        if (pixelColorIndex % 3 === 2) {
-            if (currentPixel[0] >= center[0]) {
-                if (currentPixel[1] >= center[1]) {
-                    if (currentPixel[2] >= center[2]) {
-                        quadrants[0] += 1
-                    } else {
-                        quadrants[1] += 1
-                    }
-                } else {
-                    if (currentPixel[2] >= center[2]) {
-                        quadrants[2] += 1
-                    } else {
-                        quadrants[3] += 1
-                    }
-                }
-            } else {
-                if (currentPixel[1] >= center[1]) {
-                    if (currentPixel[2] >= center[2]) {
-                        quadrants[4] += 1
-                    } else {
-                        quadrants[5] += 1
-                    }
-                } else {
-                    if (currentPixel[2] >= center[2]) {
-                        quadrants[6] += 1
-                    } else {
-                        quadrants[7] += 1
-                    }
-                }
-            }
-        }
-    }
-
-    return quadrants
-}
-
 const iterations = 10
 const BASE_DIR = "./assets"
 const files = fs.readdirSync(BASE_DIR)
 const raw_images = files.map(img => {
     return jpeg.decode(fs.readFileSync(`${BASE_DIR}/${img}`), { formatAsRGBA: false })
 })
-
-const quadrantCenterArray = (new Array(iterations))
-    .fill(null)
-    .map(() => [Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)])
 
 const pixelImages = raw_images.map(rawImage => {
     let pixelArray = []
@@ -86,21 +37,26 @@ const pixelImages = raw_images.map(rawImage => {
     }
 })
 
-const divider = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()]
-const similiarityIdArray = []
 
+let similiarityIdArray = new Array(pixelImages.length).fill(null).map(() => [])
+for(let i = 0; i <= iterations; i++){
+    const divider = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()]
 
-for (let pixelImage of pixelImages) {
-    const clusterDefinitons = [
-        { dimension: "r", maxValue: 255, dividers: [divider[0]] },
-        { dimension: "g", maxValue: 255, dividers: [divider[1]] },
-        { dimension: "b", maxValue: 255, dividers: [divider[2]] },
-        { dimension: "x", maxValue: pixelImage.width, dividers: [divider[3]] },
-        { dimension: "y", maxValue: pixelImage.height, dividers: [divider[4]] }
-    ]
-
-    similiarityIdArray.push(find(pixelImage.pixels, clusterDefinitons))
+    for (let pixelImageIndex in pixelImages) {
+        const clusterDefinitons = [
+            { dimension: "r", maxValue: 255, dividers: [divider[0]] },
+            { dimension: "g", maxValue: 255, dividers: [divider[1]] },
+            { dimension: "b", maxValue: 255, dividers: [divider[2]] },
+            { dimension: "x", maxValue: pixelImages[pixelImageIndex].width, dividers: [divider[3]] },
+            { dimension: "y", maxValue: pixelImages[pixelImageIndex].height, dividers: [divider[4]] }
+        ]
+    
+        similiarityIdArray[pixelImageIndex] = similiarityIdArray[pixelImageIndex].concat(find(pixelImages[pixelImageIndex].pixels, clusterDefinitons))
+    }
 }
+
+
+
 
 /*
 const similiarityIdArray = raw_images.map(rawImage => {
@@ -157,6 +113,7 @@ const sortedMatrix = similiarityMatrix
         }
         return result
     })
+
 
 const roc = calculateROC(sortedMatrix)
 
