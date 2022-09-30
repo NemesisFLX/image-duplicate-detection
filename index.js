@@ -2,28 +2,28 @@ import * as jpeg from "jpeg-js"
 import * as fs from "fs"
 import cluster from './cluster.json' assert {type: 'json'}
 import calculateROC from "./src/roc_calculation.js"
-import { find } from "./src/similarity.ts"
+import { Similarity } from "./src/index.ts"
 
-const iterations = 10
+const iterations = 3
 const BASE_DIR = "./assets"
 const files = fs.readdirSync(BASE_DIR)
 const raw_images = files.map(img => {
-    return jpeg.decode(fs.readFileSync(`${BASE_DIR}/${img}`), { formatAsRGBA: false })
+    return { jpeg: jpeg.decode(fs.readFileSync(`${BASE_DIR}/${img}`), { formatAsRGBA: false }), title: img }
 })
 
 const pixelImages = raw_images.map(rawImage => {
     let pixelArray = []
     let currentPixel = [0, 0, 0]
-    for (let pixelColorIndex in rawImage.data) {
+    for (let pixelColorIndex in rawImage.jpeg.data) {
         if (pixelColorIndex % 3 === 0) {
             currentPixel = [0, 0, 0]
         }
-        currentPixel[pixelColorIndex % 3] = rawImage.data[pixelColorIndex]
+        currentPixel[pixelColorIndex % 3] = rawImage.jpeg.data[pixelColorIndex]
         if (pixelColorIndex % 3 === 2) {
             const pixelIndex = Math.floor(pixelColorIndex / 3)
             pixelArray.push({
-                x: pixelIndex % rawImage.width,
-                y: Math.floor(pixelIndex / rawImage.width) % rawImage.height,
+                x: pixelIndex % rawImage.jpeg.width,
+                y: Math.floor(pixelIndex / rawImage.jpeg.width) % rawImage.jpeg.height,
                 r: currentPixel[0],
                 g: currentPixel[1],
                 b: currentPixel[2]
@@ -31,59 +31,25 @@ const pixelImages = raw_images.map(rawImage => {
         }
     }
     return {
+        title: rawImage.title,
         pixels: pixelArray,
-        height: rawImage.height,
-        width: rawImage.width
+        height: rawImage.jpeg.height,
+        width: rawImage.jpeg.width
     }
 })
 
-
-let similiarityIdArray = new Array(pixelImages.length).fill(null).map(() => [])
-for(let i = 0; i <= iterations; i++){
-    const divider = [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()]
-
-    for (let pixelImageIndex in pixelImages) {
-        const clusterDefinitons = [
-            { dimension: "r", maxValue: 255, dividers: [divider[0]] },
-            { dimension: "g", maxValue: 255, dividers: [divider[1]] },
-            { dimension: "b", maxValue: 255, dividers: [divider[2]] },
-            { dimension: "x", maxValue: pixelImages[pixelImageIndex].width, dividers: [divider[3]] },
-            { dimension: "y", maxValue: pixelImages[pixelImageIndex].height, dividers: [divider[4]] }
-        ]
-    
-        similiarityIdArray[pixelImageIndex] = similiarityIdArray[pixelImageIndex].concat(find(pixelImages[pixelImageIndex].pixels, clusterDefinitons))
-    }
-}
-
-
-
-const similiarityMatrix = Array(similiarityIdArray.length * similiarityIdArray.length).fill(null).map(() => {
-    return {
-        imageLeft: "",
-        imageRight: "",
-        score: 0
-    }
+const similarity = new Similarity({
+    iterations,
 })
 
+similarity.onChunck((clusters) => {
+    console.log(clusters)
+})
 
-for (let i = 1; i < similiarityIdArray.length; i++) {
-    for (let j = 0; j < i; j++) {
-        const similiarityIdA = similiarityIdArray[i]
-        const similiarityIdB = similiarityIdArray[j]
-        const sumA = similiarityIdA.reduce((a, b) => a + b)
-        const sumB = similiarityIdB.reduce((a, b) => a + b)
-
-        let avgDeviation = 0
-        for (const similiarityIndex in similiarityIdA) {
-            avgDeviation += Math.abs((similiarityIdA[similiarityIndex] / sumA - similiarityIdB[similiarityIndex] / sumB))
-        }
-
-        const imageCombination = similiarityMatrix[i * similiarityIdArray.length + j]
-        imageCombination.score = avgDeviation / similiarityIdA.length
-        imageCombination.imageLeft = files[i]
-        imageCombination.imageRight = files[j]
-    }
+for (const pixelImage of pixelImages) {
+    similarity.add(pixelImage)
 }
+
 
 const sortedMatrix = similiarityMatrix
     .filter(a => a.imageLeft !== "")

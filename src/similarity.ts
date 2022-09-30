@@ -1,6 +1,6 @@
-type Pixel = Record<Dimension, number>
+export type Pixel = Record<Dimension, number>
 
-enum Dimension {
+export enum Dimension {
     x = "x",
     y = "y",
     r = "r",
@@ -16,7 +16,7 @@ interface ClusterDefinition {
     splitPoints?: number[]
 }
 
-export function find(pixels: Pixel[], clusterDefinitions: ClusterDefinition[]): number[][] {
+export function find(pixels: Pixel[], clusterDefinitions: ClusterDefinition[]): number[] {
 
     clusterDefinitions.forEach((clusterDefinition) => {
         clusterDefinition.splitPoints = []
