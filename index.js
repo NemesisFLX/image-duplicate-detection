@@ -4,7 +4,7 @@ import cluster from './cluster.json' assert {type: 'json'}
 import calculateROC from "./src/roc_calculation.js"
 import { Similarity } from "./src/index.ts"
 
-const iterations = 3
+const iterations = 6
 const BASE_DIR = "./assets"
 const files = fs.readdirSync(BASE_DIR)
 const raw_images = files.map(img => {
@@ -42,21 +42,18 @@ const similarity = new Similarity({
     iterations,
 })
 
-similarity.onChunck((clusters) => {
-    console.log(clusters)
-})
-
 for (const pixelImage of pixelImages) {
     similarity.add(pixelImage)
 }
 
+console.log(similarity.clusters.filter((cluster) => cluster.length > 1))
 
-const sortedMatrix = similiarityMatrix
-    .filter(a => a.imageLeft !== "")
+
+const sortedMatrix = similarity._imagePairSimilarity
     .sort((a, b) => a.score - b.score)
     .map((result) => {
-        const leftImageClusterNumber = cluster.find((point) => point.name === result.imageLeft).clusterNumber
-        const rightImageClusterNumber = cluster.find((point) => point.name === result.imageRight).clusterNumber
+        const leftImageClusterNumber = cluster.find((point) => point.name === result.left).clusterNumber
+        const rightImageClusterNumber = cluster.find((point) => point.name === result.right).clusterNumber
         if (leftImageClusterNumber == -1 || rightImageClusterNumber == -1) {
             result.truth = false
             return result

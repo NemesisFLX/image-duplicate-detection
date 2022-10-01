@@ -1,4 +1,4 @@
-const STEP_SIZE = 0.00001
+const STEP_SIZE = 0.001
 
 export default function calculateROC(resultArray, stepSize = STEP_SIZE) {
     let p = 0
@@ -7,7 +7,7 @@ export default function calculateROC(resultArray, stepSize = STEP_SIZE) {
         result.truth ? p++ : n++
 
     let rocArray = []
-    for(let cutOff = 0; cutOff < 0.025; cutOff += stepSize){
+    for(let cutOff = 0; cutOff < 1; cutOff += stepSize){
         resultArray.map((result) => {
             if (result.score < cutOff) {
                 result.prediction = true

@@ -5,6 +5,7 @@
         "sourceMap": true,
         "watch": true,
         "allowJs": true,
-        "outDir": "bin"
+        "outDir": "bin",
+        "target": "es2022"
     }
 }
